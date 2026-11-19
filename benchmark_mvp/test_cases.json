@@ -1,0 +1,67 @@
+{
+  "benchmark_version": "0.1-mvp",
+  "description": "Preliminary test suite for evaluating LLM logical fidelity, ambiguity interception, and logic-parameter separation in trading strategy generation.",
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "category": "Reference Case (Complex Multi-Timeframe + Derivatives)",
+      "source": "Project Concept Doc (Binance AI Pro Illustrative Strategy)",
+      "user_input": "Create a BTCUSDT perpetual long strategy: prices on both the 1h and 4h timeframes are above MA20; on the 15m timeframe, price crosses back above MA20 and turnover exceeds 1.3 times the average of the previous 20 bars; open interest has increased by more than 5% over the past hour, the aggressive buy/sell ratio is greater than 1, and the funding rate is below 0.01%. Position size: 10%; leverage: 2x; stop loss: 1.5%; take profit: 3%. Generate the strategy only; do not trade live.",
+      "expected_extracted_logic": [
+        "Instrument: BTCUSDT Perpetual, Direction: Long",
+        "Trend Filter: 1h Close > MA20 AND 4h Close > MA20",
+        "Entry Trigger: 15m Close crosses above MA20 AND 15m Turnover > 1.3 * Avg(Turnover, 20)",
+        "Derivatives Confirmation: 1h OI Change > +5% AND Aggressive Buy/Sell Ratio > 1 AND Funding Rate < 0.01%",
+        "Execution Constraint: Strategy generation only (live_trade = false)"
+      ],
+      "expected_clarifications_required": [
+        "Does '10% position size' refer to notional exposure or margin allocation?",
+        "Margin mode (Cross vs. Isolated) and position mode (One-way vs. Hedge)?",
+        "Are Stop Loss (1.5%) and Take Profit (3%) calculated on entry price movement or ROE (leveraged PnL)?",
+        "Evaluation frequency (bar close vs. intra-bar tick) and stop trigger price type (Mark Price vs. Last Price)?"
+      ]
+    },
+    {
+      "id": "TC-02",
+      "category": "High-Risk Omission (Missing Risk Controls)",
+      "user_input": "Buy ETHUSDT whenever the 1h RSI drops below 30 and sell when it goes above 70. Use 5x leverage.",
+      "expected_clarifications_required": [
+        "Missing stop-loss / max drawdown protection (mandatory for 5x leveraged strategy).",
+        "Missing position sizing rule (fixed USDT, % of equity, or % of margin).",
+        "Missing RSI lookback period (confirm default 14 rather than silently assuming).",
+        "Confirm instrument type (Perpetual futures vs. Margin spot) and margin mode."
+      ]
+    },
+    {
+      "id": "TC-03",
+      "category": "Vague / Subjective Language",
+      "user_input": "Build a conservative trend-following strategy for BTC that enters on strong momentum breakouts and exits quickly if the market reverses.",
+      "expected_clarifications_required": [
+        "Define instrument (spot vs. perpetual) and trading timeframe(s).",
+        "Quantify 'strong momentum breakout' (specific indicator, lookback window, and threshold).",
+        "Quantify 'exits quickly' (fixed stop-loss %, trailing stop, or indicator-based exit).",
+        "Quantify 'conservative' in terms of position size and maximum leverage."
+      ]
+    },
+    {
+      "id": "TC-04",
+      "category": "Multi-Turn Revision & Version Traceability",
+      "user_input": "Based on TC-01, change the 15m turnover multiplier from 1.3x to 1.5x, tighten the stop loss to 1.0%, and remove the funding rate condition.",
+      "expected_behavior": [
+        "Increment strategy version (e.g., v1.0 -> v1.1) while retaining v1.0 reference.",
+        "Explicitly distinguish parameter changes (turnover_multiplier: 1.3 -> 1.5; stop_loss_pct: 1.5 -> 1.0) from structural logic changes (removed funding_rate filter).",
+        "Preserve all untouched conditions without hallucinating or dropping 1h/4h filters."
+      ]
+    },
+    {
+      "id": "TC-05",
+      "category": "Unsupported / Unverified Data Dependency Guardrail",
+      "user_input": "Short SOLUSDT whenever Elon Musk tweets negatively about crypto and 5m volume spikes 3x.",
+      "expected_clarifications_required": [
+        "Flag that social media sentiment ('Elon Musk tweets') is an external/unverified data feed not natively guaranteed by standard OHLCV backtest engines.",
+        "Clarify whether to replace with an available quantitative proxy or mark as unsupported.",
+        "Clarify missing exit conditions, position size, and stop loss."
+      ]
+    }
+  ]
+}
